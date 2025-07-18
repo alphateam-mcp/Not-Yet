@@ -52,9 +52,9 @@ python perplexity_server.py
 {
     "mcpServers": {
         "kali_mcp": {
-            "command": "/home/{username}/miniconda3/envs/kali-MCP/bin/python3",
+            "command": "/home/{username}/miniconda3/envs/Kali-MCP/bin/python3",
             "args": [
-                "/home/{username}/Desktop/MCP-Kali-Server/mcp_server.py",
+                "/home/{username}/Desktop/Not-Yet/mcp_server.py",
                 "--server",
                 "your kali_server IP:PORT"
             ]
@@ -74,9 +74,9 @@ python kali_server.py
 {
     "mcpServers": {
         "kali_mcp": {
-            "command": "/home/{username}/miniconda3/envs/kali-MCP/bin/python3",
+            "command": "/home/{username}/miniconda3/envs/Kali-MCP/bin/python3",
             "args": [
-                "/home/{username}/Desktop/MCP-Kali-Server/mcp_server.py",
+                "/home/{username}/Desktop/Not-Yet/mcp_server.py",
                 "--server",
                 "your kali_server IP:PORT"
             ]
