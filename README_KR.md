@@ -28,7 +28,7 @@ conda init --all
 conda create -n Kali-MCP python=3.12 -y
 conda activate Kali-MCP
 pip install requests flask flask-cors psutil python-nmap mcp aiohttp
-export PERPLEXITY_API_KEY="your-key"
+conda env config vars set PERPLEXITY_API_KEY=" KEY "
 conda deactivate Kali-MCP
 conda activate Kali-MCP
 ```
