@@ -19,7 +19,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 DEFAULT_KALI_SERVER = "http://localhost:5000"
-DEFAULT_REQUEST_TIMEOUT = 300
+DEFAULT_REQUEST_TIMEOUT = 3600
 
 DEFAULT_PERPLEXITY_SERVER = "http://localhost:5050"
 
