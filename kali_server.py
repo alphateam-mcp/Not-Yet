@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 # Configuration
 API_PORT = int(os.environ.get("API_PORT", 5000))
 DEBUG_MODE = os.environ.get("DEBUG_MODE", "0").lower() in ("1", "true", "yes", "y")
-COMMAND_TIMEOUT = 180  # 5 minutes default timeout
+COMMAND_TIMEOUT = 3600  # 5 minutes default timeout
 
 app = Flask(__name__)
 
