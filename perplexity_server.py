@@ -8,17 +8,14 @@ app = Flask(__name__)
 
 # TODO: 프롬프트 엔지니어링 관련 주석 수정 필요
 # PROMPT_TEMPLATES = {
-#     "default": [{"role": "system", "content": "Be precise and concise."}],
-#     "concise_summary": [{"role": "system", "content": "Summarize this in 3 concise bullet points."}],
-#     "detailed_answer": [{"role": "system", "content": "Provide a thorough and comprehensive explanation."}],
-#     "clarifying_question": [{"role": "system", "content": "Convert this into a clarifying question."}]
+#     "default": [{"role": "system", "content": "Be precise and concise."}]
 # }
 
 PERPLEXITY_API_URL = "https://api.perplexity.ai/chat/completions"
 
 
 # async def call_perplexity_api(query: str, recency: str, prompt_type: str) -> str:
-async def call_perplexity_api(query: str, recency: str) -> str:
+async def call_perplexity_api(query: str) -> str:
     api_key = os.getenv("PERPLEXITY_API_KEY")
     if not api_key:
         return "PERPLEXITY_API_KEY is not set."
@@ -39,7 +36,7 @@ async def call_perplexity_api(query: str, recency: str) -> str:
         "top_p": 0.9,
         "return_images": False,
         "return_related_questions": False,
-        "search_recency_filter": recency,
+ #       "search_recency_filter": recency,
         "top_k": 0,
         "stream": False,
         "presence_penalty": 0,
@@ -70,14 +67,14 @@ async def call_perplexity_api(query: str, recency: str) -> str:
 def search():
     body = request.get_json()
     query = body.get("query")
-    recency = body.get("recency", "month")
+    # recency = body.get("recency", "month")
     # prompt_type = body.get("prompt_type", "default")
 
     if not query:
         return jsonify({"error": "Missing 'query' parameter"}), 400
 
     # result = asyncio.run(call_perplexity_api(query, recency, prompt_type))
-    result = asyncio.run(call_perplexity_api(query, recency))
+    result = asyncio.run(call_perplexity_api(query))
     return jsonify({"result": result})
 
 

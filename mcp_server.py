@@ -102,11 +102,10 @@ class PerplexityClient:
 
 def setup_perplexity_tools(perplexity_client: PerplexityClient):
     @mcp.tool()
-    def perplexity_search(query: str, recency: str):
+    def perplexity_search(query: str):
     # def perplexity_search(query: str, recency: str = "month", prompt_type: str = "default"):
         return perplexity_client.safe_post("api/perplexity/search", {
-            "query": query,
-            "recency": recency
+            "query": query
             # "prompt_type": prompt_type
         })
 
