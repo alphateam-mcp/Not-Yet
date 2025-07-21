@@ -178,6 +178,18 @@ def setup_kali_tools(kali_client: KaliToolsClient):
         return kali_client.safe_post("api/tools/curl", {
             "target": target
         })
+        
+    # @mcp.tool()
+    # def trivy(file_path: str):
+    #     return kali_client.safe_post("api/tools/trivy", {
+    #         "file_path" : file_path
+    #     })
+        
+    @mcp.tool()
+    def syft(directory: str):
+    	return kali_client.safe_post("api/tools/syft", {
+    	    "directory" : directory
+    	})
 
     @mcp.tool()
     def server_health():
@@ -198,7 +210,7 @@ async def sbom_scan(file_content: Any, filename: str):
                 json.dump(file_content, f, indent=2)
             else:
                 f.write(file_content)
-
+        
         cmd = [ "trivy", "fs", "--format", "cyclonedx", "--scanners", "vuln", "--output", "sbom.json", temp_path]
         process = await asyncio.create_subprocess_exec(
             *cmd,
