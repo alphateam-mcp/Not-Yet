@@ -565,7 +565,11 @@ def trivy():
         command = f"trivy fs --format cyclonedx --scanners vuln --output \"{sbom_output_path}\" \"{package_lock_path}\""
 
         logger.info(f"Executing command: {command}")
-        result = execute_command(command)
+        execute_command(command)
+        
+        cmd = f"cat {sbom_output_path}"
+        
+        result = execute_command(cmd)
 
         return jsonify(result)
 
