@@ -179,11 +179,11 @@ def setup_kali_tools(kali_client: KaliToolsClient):
             "target": target
         })
         
-    # @mcp.tool()
-    # def trivy(file_path: str):
-    #     return kali_client.safe_post("api/tools/trivy", {
-    #         "file_path" : file_path
-    #     })
+    @mcp.tool()
+    def trivy(file_path: str):
+        return kali_client.safe_post("api/tools/trivy", {
+            "file_path" : file_path
+        })
         
     @mcp.tool()
     def syft(directory: str):

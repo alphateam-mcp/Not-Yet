@@ -4,7 +4,6 @@
 
 # some of the code here was inspired from https://github.com/whit3rabbit0/project_astro , be sure to check them out
 
-# TODO About trivy, Need to be changed.
 import argparse
 import json
 import logging
@@ -539,32 +538,43 @@ def enum4linux():
             "error": f"Server error: {str(e)}"
         }), 500
         
-# @app.route("/api/tools/trivy", methods=["POST"])
-# def trivy():
-#     """Execute trivy for making sbom file."""
-#     try:
-#         params = request.json
-#         file_path= params.get("file_path", "")
-        
-#         if not file_path:
-#             logger.warning("Trivy can't find any file path.")
-#             return jsonify({
-#                 "error": "File Path is required." 
-#             }), 400
-            
-#         command = f"trivy fs --format cyclonedx --scanners vuln --output {file_path}sbom.json"    
-            
-#         command += f" {file_path}/package-lock.json"
-        
-#         result = execute_command(command)
-        
-#         return jsonify(result)
-#     except Exception as e:
-#         logger.error(f"Error in trivy endpoint: {str(e)}")
-#         logger.error(traceback.format_exc())
-#         return jsonify({
-#             "error": f"Server error: {str(e)}"
-#         }), 500
+@app.route("/api/tools/trivy", methods=["POST"])
+def trivy():
+    """Execute trivy for making SBOM file from local package-lock.json."""
+    try:
+        params = request.json
+        file_path = params.get("file_path", "").strip()
+
+        if not file_path:
+            logger.warning("Trivy can't find any file path.")
+            return jsonify({
+                "error": "File Path is required." 
+            }), 400
+
+        file_path = os.path.abspath(file_path)
+
+        package_lock_path = os.path.join(file_path, "package-lock.json")
+        sbom_output_path = os.path.join(file_path, "sbom.json")
+
+        if not os.path.exists(package_lock_path):
+            logger.warning(f"File not found: {package_lock_path}")
+            return jsonify({
+                "error": f"'package-lock.json' not found in: {file_path}"
+            }), 404
+
+        command = f"trivy fs --format cyclonedx --scanners vuln --output \"{sbom_output_path}\" \"{package_lock_path}\""
+
+        logger.info(f"Executing command: {command}")
+        result = execute_command(command)
+
+        return jsonify(result)
+
+    except Exception as e:
+        logger.error(f"Error in trivy endpoint: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({
+            "error": f"Server error: {str(e)}"
+        }), 500
         
 @app.route("/api/tools/syft", methods=["POST"])
 def syft():
