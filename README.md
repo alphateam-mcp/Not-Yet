@@ -1,4 +1,4 @@
-# Not-Yet-kali-perp-curl
+# Not-Yet
 
 This project consists of three distinct server applications: a Kali server, a MCP server, and a Perplexity server. Each server provides different functionalities, including screen capturing, executing commands, and interacting with the Perplexity API.
 
