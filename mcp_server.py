@@ -184,12 +184,6 @@ def setup_kali_tools(kali_client: KaliToolsClient):
         return kali_client.safe_post("api/tools/trivy", {
             "file_path" : file_path
         })
-        
-    @mcp.tool()
-    def syft(directory: str):
-    	return kali_client.safe_post("api/tools/syft", {
-    	    "directory" : directory
-    	})
 
     @mcp.tool()
     def server_health():
