@@ -198,38 +198,6 @@ def setup_kali_tools(kali_client: KaliToolsClient):
     @mcp.tool()
     def execute_command(command: str):
         return kali_client.execute_command(command)
-
-@mcp.tool()
-async def sbom_scan(file_content: Any, filename: str):
-    try:
-        logger.info(f"Starting Trivy scan for file: {filename}")
-        temp_path = f"/tmp/{filename}"
-
-        with open(temp_path, "w") as f:
-            if isinstance(file_content, dict):
-                json.dump(file_content, f, indent=2)
-            else:
-                f.write(file_content)
-        
-        cmd = [ "trivy", "fs", "--format", "cyclonedx", "--scanners", "vuln", "--output", "sbom.json", temp_path]
-        process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        stdout, stderr = await process.communicate()
-
-        os.remove(temp_path)
-
-        if process.returncode == 0:
-            with open("sbom.json", "r") as f:
-                return json.load(f)
-        else:
-            return {"error": stderr.decode()}
-
-    except Exception as e:
-        logger.error(f"Exception in sbom_scan: {str(e)}")
-        return {"error": str(e)}
     
 def parse_args():
     parser = argparse.ArgumentParser(description="Run the kali + sbom MCP Client")
