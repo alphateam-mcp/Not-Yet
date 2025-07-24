@@ -578,33 +578,7 @@ def trivy():
         logger.error(traceback.format_exc())
         return jsonify({
             "error": f"Server error: {str(e)}"
-        }), 500
-        
-@app.route("/api/tools/syft", methods=["POST"])
-def syft():
-    """Execute syft for making sbom file"""        
-    try:
-        params = request.json
-        directory = params.get("directory", "")
-        
-        if not directory:
-            logger.warning("Syft can't find any directory")
-            return jsonify({
-                "error" : "Directory is required"
-            }), 404
-            
-        command = f"syft {directory} -o cyclonedx-json=sbom.json"
-        
-        result = execute_command(command)
-        
-        return jsonify(result)
-    except Exception as e:
-        logger.error(f"Error in syft endpoint: {str(e)}")
-        logger.error(traceboack.format_exc())
-        return jsonify({
-            "error": f"Server error: {str(e)}"
-        }), 500
-        
+        }), 500        
 
 # Health check endpoint
 @app.route("/health", methods=["GET"])
