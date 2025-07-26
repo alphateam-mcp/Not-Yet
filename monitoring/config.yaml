@@ -1,0 +1,248 @@
+# Not-Yet Monitoring System Configuration
+
+# Server Configuration
+servers:
+  kali:
+    url: "http://localhost:5000"
+    enabled: true
+    timeout: 30
+    health_check_interval: 60
+    
+  perplexity:
+    url: "http://localhost:5050"
+    enabled: true
+    timeout: 30
+    health_check_interval: 60
+    
+  mcp:
+    enabled: true
+    health_check_interval: 120
+
+# Metrics Collection Configuration
+metrics:
+  collection_interval: 30          # seconds
+  buffer_size: 10000              # maximum metrics in memory
+  retention_hours: 24             # hours to keep metrics
+  export_formats: ["json", "prometheus"]
+  
+  # Metric categories to collect
+  categories:
+    system: true                  # CPU, memory, disk, network
+    http: true                   # HTTP request metrics
+    tools: true                  # Security tool execution metrics
+    errors: true                 # Error and exception metrics
+    custom: true                 # Custom application metrics
+
+# Alert Thresholds
+alert_thresholds:
+  # System resource thresholds
+  cpu_percent: 80.0
+  memory_percent: 85.0
+  disk_percent: 90.0
+  
+  # Performance thresholds
+  response_time: 5.0             # seconds
+  error_rate: 0.05               # 5%
+  
+  # Tool execution thresholds
+  tool_timeout_rate: 0.1         # 10%
+  failed_tool_rate: 0.2          # 20%
+  
+  # Health check thresholds
+  health_check_failures: 3       # consecutive failures before alert
+
+# Logging Configuration
+logging:
+  level: "INFO"                  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  format: "json"                 # json or text
+  
+  # Output destinations
+  console:
+    enabled: true
+    level: "INFO"
+    
+  file:
+    enabled: true
+    level: "INFO"
+    directory: "./logs"
+    max_size_mb: 10
+    backup_count: 5
+    
+  # Log aggregation
+  aggregation:
+    enabled: true
+    retention_days: 7
+    
+  # Security settings
+  security:
+    redact_sensitive: true
+    sensitive_patterns:
+      - "password"
+      - "secret"
+      - "key"
+      - "token"
+      - "auth"
+      - "credential"
+
+# Dashboard Configuration
+dashboard:
+  enabled: true
+  host: "0.0.0.0"
+  port: 8080
+  auto_refresh_interval: 30      # seconds
+  
+  # Dashboard features
+  features:
+    real_time_metrics: true
+    historical_charts: true
+    alert_notifications: true
+    server_status: true
+    tool_monitoring: true
+    
+  # Chart configurations
+  charts:
+    time_ranges: ["5m", "15m", "1h", "6h", "24h"]
+    default_range: "1h"
+    max_data_points: 1000
+
+# Health Check Configuration
+health_checks:
+  enabled: true
+  
+  # Built-in health checks
+  system_resources:
+    enabled: true
+    interval: 60               # seconds
+    
+  tool_availability:
+    enabled: true
+    interval: 300              # seconds
+    tools:
+      - nmap
+      - gobuster
+      - dirb
+      - nikto
+      - sqlmap
+      - hydra
+      - john
+      - wpscan
+      - enum4linux
+      - trivy
+      
+  api_connectivity:
+    enabled: true
+    interval: 120              # seconds
+    
+  disk_space:
+    enabled: true
+    interval: 300              # seconds
+    warning_threshold: 80      # percent
+    critical_threshold: 95     # percent
+
+# Performance Optimization
+performance:
+  # Metrics collection optimization
+  batch_size: 100             # metrics to process in batch
+  collection_threads: 2       # worker threads for collection
+  
+  # Memory management
+  max_memory_usage: 500       # MB
+  gc_interval: 300            # seconds
+  
+  # Database/storage optimization
+  storage:
+    type: "memory"            # memory, file, database
+    compression: true
+    cleanup_interval: 3600    # seconds
+
+# Security Configuration
+security:
+  # Authentication (if enabled)
+  authentication:
+    enabled: false
+    type: "api_key"           # api_key, jwt, basic
+    
+  # Authorization
+  authorization:
+    enabled: false
+    roles:
+      - admin
+      - viewer
+      
+  # API security
+  api:
+    rate_limiting:
+      enabled: true
+      requests_per_minute: 100
+      
+    cors:
+      enabled: true
+      allowed_origins: ["*"]
+      
+    ssl:
+      enabled: false
+      cert_file: ""
+      key_file: ""
+
+# Integration Configuration
+integrations:
+  # Prometheus integration
+  prometheus:
+    enabled: false
+    endpoint: "/metrics"
+    
+  # Grafana integration
+  grafana:
+    enabled: false
+    datasource_url: ""
+    
+  # External alerting
+  alerting:
+    enabled: false
+    webhook_url: ""
+    slack_webhook: ""
+    email_smtp: ""
+    
+  # Log shipping
+  log_shipping:
+    enabled: false
+    elasticsearch_url: ""
+    fluentd_host: ""
+
+# Environment-specific overrides
+environments:
+  development:
+    logging:
+      level: "DEBUG"
+      console:
+        enabled: true
+    dashboard:
+      port: 8080
+    performance:
+      collection_threads: 1
+      
+  testing:
+    logging:
+      level: "WARNING"
+      file:
+        enabled: false
+    metrics:
+      collection_interval: 60
+      
+  production:
+    logging:
+      level: "INFO"
+      console:
+        enabled: false
+      file:
+        directory: "/var/log/not-yet"
+        max_size_mb: 50
+        backup_count: 10
+    security:
+      authentication:
+        enabled: true
+      authorization:
+        enabled: true
+    performance:
+      collection_threads: 4
+      max_memory_usage: 1000

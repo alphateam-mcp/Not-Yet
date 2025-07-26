@@ -15,6 +15,15 @@ import threading
 from typing import Dict, Any
 from flask import Flask, request, jsonify
 
+# Import monitoring components
+try:
+    from monitoring.middleware import MonitoringMiddleware, monitor_tool_execution, get_health_manager, health_check
+    from monitoring.metrics_collector import get_metrics_collector
+    MONITORING_AVAILABLE = True
+except ImportError:
+    MONITORING_AVAILABLE = False
+    logger.warning("Monitoring components not available")
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -31,6 +40,17 @@ DEBUG_MODE = os.environ.get("DEBUG_MODE", "0").lower() in ("1", "true", "yes", "
 COMMAND_TIMEOUT = 3600  # 5 minutes default timeout
 
 app = Flask(__name__)
+
+# Initialize monitoring if available
+if MONITORING_AVAILABLE:
+    monitoring = MonitoringMiddleware(app)
+    metrics_collector = get_metrics_collector()
+    health_manager = get_health_manager()
+    logger.info("Monitoring enabled")
+else:
+    monitoring = None
+    metrics_collector = None
+    health_manager = None
 
 class CommandExecutor:
     """Class to handle command execution with better timeout management"""
@@ -188,6 +208,7 @@ def curl():
 
 
 @app.route("/api/tools/nmap", methods=["POST"])
+@monitor_tool_execution("nmap") if MONITORING_AVAILABLE else lambda x: x
 def nmap():
     """Execute nmap scan with the provided parameters."""
     try:
@@ -224,6 +245,7 @@ def nmap():
         }), 500
 
 @app.route("/api/tools/gobuster", methods=["POST"])
+@monitor_tool_execution("gobuster") if MONITORING_AVAILABLE else lambda x: x
 def gobuster():
     """Execute gobuster with the provided parameters."""
     try:
@@ -261,6 +283,7 @@ def gobuster():
         }), 500
 
 @app.route("/api/tools/dirb", methods=["POST"])
+@monitor_tool_execution("dirb") if MONITORING_AVAILABLE else lambda x: x
 def dirb():
     """Execute dirb with the provided parameters."""
     try:
@@ -290,6 +313,7 @@ def dirb():
         }), 500
 
 @app.route("/api/tools/nikto", methods=["POST"])
+@monitor_tool_execution("nikto") if MONITORING_AVAILABLE else lambda x: x
 def nikto():
     """Execute nikto with the provided parameters."""
     try:
@@ -318,6 +342,7 @@ def nikto():
         }), 500
 
 @app.route("/api/tools/sqlmap", methods=["POST"])
+@monitor_tool_execution("sqlmap") if MONITORING_AVAILABLE else lambda x: x
 def sqlmap():
     """Execute sqlmap with the provided parameters."""
     try:
@@ -350,6 +375,7 @@ def sqlmap():
         }), 500
 
 @app.route("/api/tools/metasploit", methods=["POST"])
+@monitor_tool_execution("metasploit") if MONITORING_AVAILABLE else lambda x: x
 def metasploit():
     """Execute metasploit module with the provided parameters."""
     try:
@@ -397,6 +423,7 @@ def metasploit():
         }), 500
 
 @app.route("/api/tools/hydra", methods=["POST"])
+@monitor_tool_execution("hydra") if MONITORING_AVAILABLE else lambda x: x
 def hydra():
     """Execute hydra with the provided parameters."""
     try:
@@ -448,6 +475,7 @@ def hydra():
         }), 500
 
 @app.route("/api/tools/john", methods=["POST"])
+@monitor_tool_execution("john") if MONITORING_AVAILABLE else lambda x: x
 def john():
     """Execute john with the provided parameters."""
     try:
@@ -486,6 +514,7 @@ def john():
         }), 500
 
 @app.route("/api/tools/wpscan", methods=["POST"])
+@monitor_tool_execution("wpscan") if MONITORING_AVAILABLE else lambda x: x
 def wpscan():
     """Execute wpscan with the provided parameters."""
     try:
@@ -514,6 +543,7 @@ def wpscan():
         }), 500
 
 @app.route("/api/tools/enum4linux", methods=["POST"])
+@monitor_tool_execution("enum4linux") if MONITORING_AVAILABLE else lambda x: x
 def enum4linux():
     """Execute enum4linux with the provided parameters."""
     try:
@@ -539,6 +569,7 @@ def enum4linux():
         }), 500
         
 @app.route("/api/tools/trivy", methods=["POST"])
+@monitor_tool_execution("trivy") if MONITORING_AVAILABLE else lambda x: x
 def trivy():
     """Execute trivy for making SBOM file from local package-lock.json."""
     try:
@@ -580,12 +611,11 @@ def trivy():
             "error": f"Server error: {str(e)}"
         }), 500        
 
-# Health check endpoint
-@app.route("/health", methods=["GET"])
-def health_check():
-    """Health check endpoint."""
-    # Check if essential tools are installed
-    essential_tools = ["nmap", "gobuster", "dirb", "nikto"]
+# Enhanced health check with monitoring
+@health_check("tools_availability") if MONITORING_AVAILABLE else lambda: {}
+def check_tools_availability():
+    """Check if essential tools are available"""
+    essential_tools = ["nmap", "gobuster", "dirb", "nikto", "sqlmap", "hydra", "john", "wpscan", "enum4linux", "trivy"]
     tools_status = {}
     
     for tool in essential_tools:
@@ -595,24 +625,143 @@ def health_check():
         except:
             tools_status[tool] = False
     
-    all_essential_tools_available = all(tools_status.values())
+    all_available = all(tools_status.values())
     
-    return jsonify({
-        "status": "healthy",
-        "message": "Kali Linux Tools API Server is running",
+    return {
+        "healthy": all_available,
         "tools_status": tools_status,
-        "all_essential_tools_available": all_essential_tools_available
-    })
+        "available_count": sum(tools_status.values()),
+        "total_count": len(tools_status)
+    }
+
+@health_check("system_resources") if MONITORING_AVAILABLE else lambda: {}
+def check_system_resources():
+    """Check system resource availability"""
+    try:
+        import psutil
+        
+        cpu_percent = psutil.cpu_percent(interval=1)
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        
+        # Define thresholds
+        cpu_healthy = cpu_percent < 90
+        memory_healthy = memory.percent < 90
+        disk_healthy = (disk.used / disk.total * 100) < 95
+        
+        return {
+            "healthy": cpu_healthy and memory_healthy and disk_healthy,
+            "cpu_percent": cpu_percent,
+            "memory_percent": memory.percent,
+            "disk_percent": disk.used / disk.total * 100,
+            "thresholds_ok": {
+                "cpu": cpu_healthy,
+                "memory": memory_healthy,
+                "disk": disk_healthy
+            }
+        }
+    except ImportError:
+        return {"healthy": True, "message": "psutil not available, skipping resource check"}
+
+# Main health endpoint
+@app.route("/health", methods=["GET"])
+def health_endpoint():
+    """Comprehensive health check endpoint"""
+    if MONITORING_AVAILABLE:
+        # Use enhanced health checks
+        health_results = health_manager.run_all_checks()
+        
+        # Add basic server info
+        response = {
+            "status": "healthy" if health_results["overall_healthy"] else "unhealthy",
+            "message": "Kali Linux Tools API Server",
+            "server_info": {
+                "version": "1.0.0",
+                "uptime": time.time() - app.config.get('START_TIME', time.time()),
+                "monitoring_enabled": True
+            },
+            "health_checks": health_results["checks"],
+            "overall_healthy": health_results["overall_healthy"],
+            "timestamp": health_results["timestamp"]
+        }
+    else:
+        # Fallback to basic health check
+        tools_check = check_tools_availability()
+        response = {
+            "status": "healthy" if tools_check["healthy"] else "degraded",
+            "message": "Kali Linux Tools API Server (basic health check)",
+            "server_info": {
+                "version": "1.0.0",
+                "monitoring_enabled": False
+            },
+            "tools_status": tools_check["tools_status"],
+            "all_essential_tools_available": tools_check["healthy"]
+        }
+    
+    status_code = 200 if response.get("overall_healthy", response["status"] == "healthy") else 503
+    return jsonify(response), status_code
+
+# New monitoring endpoints
+@app.route("/metrics", methods=["GET"])
+def metrics_endpoint():
+    """Prometheus-style metrics endpoint"""
+    if not MONITORING_AVAILABLE:
+        return jsonify({"error": "Monitoring not available"}), 503
+    
+    format_type = request.args.get('format', 'prometheus')
+    try:
+        metrics_data = metrics_collector.export_metrics(format_type)
+        
+        if format_type == 'prometheus':
+            return metrics_data, 200, {'Content-Type': 'text/plain'}
+        else:
+            return jsonify(json.loads(metrics_data))
+    except Exception as e:
+        logger.error(f"Error exporting metrics: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/status", methods=["GET"])
+def status_endpoint():
+    """Detailed server status information"""
+    response = {
+        "server_name": "kali-server",
+        "version": "1.0.0",
+        "status": "running",
+        "uptime": time.time() - app.config.get('START_TIME', time.time()),
+        "monitoring_enabled": MONITORING_AVAILABLE
+    }
+    
+    if MONITORING_AVAILABLE:
+        # Add metrics summary
+        response["metrics_summary"] = metrics_collector.get_summary_stats()
+        response["health_status"] = metrics_collector.get_health_status()
+    
+    return jsonify(response)
 
 @app.route("/mcp/capabilities", methods=["GET"])
 def get_capabilities():
-    # Return tool capabilities similar to our existing MCP server
-    pass
-
-@app.route("/mcp/tools/kali_tools/<tool_name>", methods=["POST"])
-def execute_tool(tool_name):
-    # Direct tool execution without going through the API server
-    pass
+    """Return tool capabilities for MCP integration"""
+    capabilities = {
+        "tools": {
+            "nmap": {"description": "Network scanning and discovery", "timeout": 3600},
+            "gobuster": {"description": "Directory/file brute-forcing", "timeout": 1800},
+            "dirb": {"description": "Web content scanner", "timeout": 1800},
+            "nikto": {"description": "Web server scanner", "timeout": 1200},
+            "sqlmap": {"description": "SQL injection detection", "timeout": 2400},
+            "metasploit": {"description": "Metasploit framework", "timeout": 1800},
+            "hydra": {"description": "Password brute-forcing", "timeout": 1800},
+            "john": {"description": "Password hash cracking", "timeout": 3600},
+            "wpscan": {"description": "WordPress vulnerability scanner", "timeout": 1200},
+            "enum4linux": {"description": "SMB enumeration", "timeout": 900},
+            "trivy": {"description": "Container vulnerability scanner", "timeout": 600}
+        },
+        "features": {
+            "monitoring": MONITORING_AVAILABLE,
+            "health_checks": True,
+            "metrics": MONITORING_AVAILABLE
+        }
+    }
+    return jsonify(capabilities)
 
 def parse_args():
     """Parse command line arguments."""
@@ -633,5 +782,27 @@ if __name__ == "__main__":
     if args.port != API_PORT:
         API_PORT = args.port
     
+    # Store start time for uptime calculation
+    app.config['START_TIME'] = time.time()
+    
+    # Initialize monitoring if available
+    if MONITORING_AVAILABLE:
+        logger.info("Monitoring system initialized")
+        # Register additional health checks
+        check_tools_availability()
+        check_system_resources()
+    
     logger.info(f"Starting Kali Linux Tools API Server on port {API_PORT}")
-    app.run(host="0.0.0.0", port=API_PORT, debug=DEBUG_MODE)
+    logger.info(f"Monitoring enabled: {MONITORING_AVAILABLE}")
+    
+    try:
+        app.run(host="0.0.0.0", port=API_PORT, debug=DEBUG_MODE)
+    except KeyboardInterrupt:
+        logger.info("Server shutdown requested")
+        if MONITORING_AVAILABLE and metrics_collector:
+            metrics_collector.stop_collection()
+    except Exception as e:
+        logger.error(f"Server error: {e}")
+        if MONITORING_AVAILABLE and metrics_collector:
+            metrics_collector.stop_collection()
+        raise
