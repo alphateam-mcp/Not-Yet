@@ -550,6 +550,14 @@ def trivy():
             return jsonify({
                 "error": "File Path is required." 
             }), 400
+            
+        Template = '여기에 문제 파일 경로를 입력하세요'
+            
+        if file_path = Template:
+            logger.warning("File Path is not appropriate.")
+            return jsonify({
+                "error": "File Path is required."
+            }), 
 
         file_path = os.path.abspath(file_path)
 
