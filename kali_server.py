@@ -553,7 +553,7 @@ def trivy():
             
         Template = '여기에 문제 파일 경로를 입력하세요'
             
-        if file_path = Template:
+        if file_path == Template:
             logger.warning("File Path is not appropriate.")
             return jsonify({
                 "error": "File Path is required."
