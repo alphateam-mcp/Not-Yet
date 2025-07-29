@@ -246,7 +246,7 @@ def gobuster():
                 "error": f"Invalid mode: {mode}. Must be one of: dir, dns, fuzz, vhost"
             }), 400
         
-        command = f"gobuster {mode} -u {url} -w {wordlist}"
+        command = f"gobuster {mode} -u {url} -w {wordlist} --no-error"
         
         if additional_args:
             command += f" {additional_args}"
@@ -275,7 +275,7 @@ def dirb():
                 "error": "URL parameter is required"
             }), 400
         
-        command = f"dirb {url} {wordlist}"
+        command = f"dirb {url} {wordlist} -w"
         
         if additional_args:
             command += f" {additional_args}"
@@ -289,33 +289,6 @@ def dirb():
             "error": f"Server error: {str(e)}"
         }), 500
 
-@app.route("/api/tools/nikto", methods=["POST"])
-def nikto():
-    """Execute nikto with the provided parameters."""
-    try:
-        params = request.json
-        target = params.get("target", "")
-        additional_args = params.get("additional_args", "")
-        
-        if not target:
-            logger.warning("Nikto called without target parameter")
-            return jsonify({
-                "error": "Target parameter is required"
-            }), 400
-        
-        command = f"nikto -h {target}"
-        
-        if additional_args:
-            command += f" {additional_args}"
-        
-        result = execute_command(command)
-        return jsonify(result)
-    except Exception as e:
-        logger.error(f"Error in nikto endpoint: {str(e)}")
-        logger.error(traceback.format_exc())
-        return jsonify({
-            "error": f"Server error: {str(e)}"
-        }), 500
 
 @app.route("/api/tools/sqlmap", methods=["POST"])
 def sqlmap():
@@ -575,7 +548,7 @@ def trivy():
         logger.info(f"Executing command: {command}")
         execute_command(command)
         
-        cmd = f"cat {sbom_output_path}"
+        cmd = f"grep -r 'CVE' {sbom_output_path}"
         
         result = execute_command(cmd)
 

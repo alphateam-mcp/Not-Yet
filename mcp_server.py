@@ -131,12 +131,6 @@ def setup_kali_tools(kali_client: KaliToolsClient):
         })
 
     @mcp.tool()
-    def nikto_scan(target: str, additional_args: str = ""):
-        return kali_client.safe_post("api/tools/nikto", {
-            "target": target, "additional_args": additional_args
-        })
-
-    @mcp.tool()
     def sqlmap_scan(url: str, data: str = "", additional_args: str = ""):
         return kali_client.safe_post("api/tools/sqlmap", {
             "url": url, "data": data, "additional_args": additional_args
