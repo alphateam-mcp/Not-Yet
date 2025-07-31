@@ -100,16 +100,58 @@ class PerplexityClient:
     def check_health(self) -> Dict[str, Any]:
         return self.safe_get("health")
 
+mcp = FastMCP("kali + sbom + webhook")
+
 def setup_perplexity_tools(perplexity_client: PerplexityClient):
     @mcp.tool()
     def perplexity_search(query: str):
-    # def perplexity_search(query: str, recency: str = "month", prompt_type: str = "default"):
         return perplexity_client.safe_post("api/perplexity/search", {
             "query": query
-            # "prompt_type": prompt_type
         })
 
-mcp = FastMCP("kali + sbom")
+@mcp.tool()
+def send_message(webhook_url: str, content: str, username: Optional[str] = None, avatar_url: Optional[str] = None):
+    if not content or not isinstance(content, str) or not content.strip():
+        return {"error": "Content parameter is required and cannot be empty", "success": False}
+
+    payload = {"text": content}
+    if username:
+        payload["username"] = username
+    if avatar_url:
+        payload["avatar_url"] = avatar_url
+
+    try:
+        response = requests.post(webhook_url, json=payload)
+        response.raise_for_status()
+        return {"status": "Message sent successfully", "success": True}
+    except requests.exceptions.RequestException as e:
+        error_message = str(e)
+        if e.response is not None:
+            try:
+                error_message = e.response.json().get("message", e.response.text)
+            except json.JSONDecodeError:
+                error_message = e.response.text
+        logger.error(f"Webhook request failed: {error_message}")
+        return {"error": f"Webhook request failed: {error_message}", "success": False}
+
+@mcp.tool()
+def send_json(webhook_url: str, body: Dict[str, Any]):
+    if not body or not isinstance(body, dict):
+        return {"error": "Body parameter is required and must be a JSON object", "success": False}
+
+    try:
+        response = requests.post(webhook_url, json=body)
+        response.raise_for_status()
+        return {"status": "JSON sent successfully", "success": True}
+    except requests.exceptions.RequestException as e:
+        error_message = str(e)
+        if e.response is not None:
+            try:
+                error_message = e.response.json().get("message", e.response.text)
+            except json.JSONDecodeError:
+                error_message = e.response.text
+        logger.error(f"Webhook request failed: {error_message}")
+        return {"error": f"Webhook request failed: {error_message}", "success": False}
 
 def setup_kali_tools(kali_client: KaliToolsClient):
     @mcp.tool()
@@ -128,12 +170,6 @@ def setup_kali_tools(kali_client: KaliToolsClient):
     def dirb_scan(url: str, wordlist: str = "/usr/share/wordlists/dirb/common.txt", additional_args: str = ""):
         return kali_client.safe_post("api/tools/dirb", {
             "url": url, "wordlist": wordlist, "additional_args": additional_args
-        })
-
-    @mcp.tool()
-    def nikto_scan(target: str, additional_args: str = ""):
-        return kali_client.safe_post("api/tools/nikto", {
-            "target": target, "additional_args": additional_args
         })
 
     @mcp.tool()
@@ -204,13 +240,15 @@ def main():
     args = parse_args()
     if args.debug:
         logger.setLevel(logging.DEBUG)
+
     kali_client = KaliToolsClient(args.server, args.timeout)
     setup_kali_tools(kali_client)
+    
     perplexity_server = os.getenv("PERPLEXITY_SERVER", DEFAULT_PERPLEXITY_SERVER)
     perplexity_client = PerplexityClient(perplexity_server, args.timeout)
     setup_perplexity_tools(perplexity_client)
-    logger.info("Starting kali + sbom MCP server")
-    logger.info(f"Starting Perplexity server")
+    
+    logger.info("Starting kali + sbom + webhook MCP server")
     mcp.run(transport="stdio")
 
 if __name__ == "__main__":
